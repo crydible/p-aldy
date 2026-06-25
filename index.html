@@ -36,4 +36,134 @@
             <th class="p-3 border border-gray-300 text-center">Kolom 2</th>
             <th class="p-3 border border-gray-300 text-center">Kolom 3</th>
             <th class="p-3 border border-gray-300 text-center">Kolom 4</th>
-            <th class="p-3 border border-gray-30
+            <th class="p-3 border border-gray-300 text-center">Kolom 5</th>
+          </tr>
+        </thead>
+        <tbody id="input-grid">
+          </tbody>
+      </table>
+    </div>
+
+    <div class="p-6 bg-gray-50 border-t border-gray-200 flex justify-end">
+      <button onclick="kirimData()" id="btn-simpan" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow transition duration-200 flex items-center gap-2">
+        <span>Simpan ke Spreadsheet</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // ⚠️ GANTI DENGAN URL WEB APP GOOGLE APPS SCRIPT KAMU
+    const WEB_APP_URL = "URL_WEB_APP_GOOGLE_APPS_SCRIPT_KAMU";
+
+    // Generate Grid Tabel secara otomatis (7 Baris x 5 Kolom)
+    const tbody = document.getElementById('input-grid');
+    for (let r = 0; r < 7; r++) {
+      let tr = document.createElement('tr');
+      tr.className = "hover:bg-blue-50/50 transition-colors";
+      
+      // Label Nomor Baris (Sesuai baris 6 s.d 12 di spreadsheet)
+      let tdNum = document.createElement('td');
+      tdNum.className = "p-3 border border-gray-300 bg-gray-50 font-bold text-gray-500 text-center text-sm";
+      tdNum.innerText = r + 6;
+      tr.appendChild(tdNum);
+
+      // Input per kolom
+      for (let c = 0; c < 5; c++) {
+        let td = document.createElement('td');
+        td.className = "border border-gray-300 p-0";
+        
+        let input = document.createElement('input');
+        input.type = "text";
+        input.className = "w-full p-3 text-sm text-gray-800 bg-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 font-normal transition-all cell-input";
+        input.dataset.row = r;
+        input.dataset.col = c;
+        input.placeholder = "...";
+        
+        // Fitur Pemecah Teks jika user melakukan Copy-Paste data horizontal
+        input.addEventListener('paste', function(e) {
+            e.preventDefault(); 
+            
+            let clipboardData = (e.clipboardData || window.clipboardData).getData('text');
+            let lines = clipboardData.split('\n');
+            let startRow = parseInt(this.dataset.row);
+            let startCol = parseInt(this.dataset.col);
+            
+            lines.forEach((line, lineIndex) => {
+                if (!line.trim()) return; 
+                
+                let columns = line.split('\t'); // Split berdasarkan struktur Tab bawaan excel/sheets
+                let targetRow = startRow + lineIndex;
+                
+                columns.forEach((colData, colIndex) => {
+                    let targetCol = startCol + colIndex;
+                    
+                    let targetInput = document.querySelector(`.cell-input[data-row="${targetRow}"][data-col="${targetCol}"]`);
+                    if (targetInput) {
+                        targetInput.value = colData.trim();
+                    }
+                });
+            });
+        });
+        
+        td.appendChild(input);
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+
+    // Fungsi Pengiriman Data ke Google Sheets API via Apps Script
+    function kirimData() {
+      const supervisor = document.getElementById('supervisor').value;
+      const btn = document.getElementById('btn-simpan');
+      let matrix = Array.from({ length: 7 }, () => Array(5).fill(""));
+      const inputs = document.querySelectorAll('.cell-input');
+      
+      inputs.forEach(input => {
+        let r = input.dataset.row;
+        let c = input.dataset.col;
+        matrix[r][c] = input.value.trim();
+      });
+
+      // Proteksi jika konstanta url belum disesuaikan
+      if (WEB_APP_URL === "URL_WEB_APP_GOOGLE_APPS_SCRIPT_KAMU") {
+        alert("Fer, jangan lupa isi dulu link WEB_APP_URL kamu di bagian script bawah!");
+        return;
+      }
+
+      // Animasi Loading Tombol
+      btn.disabled = true;
+      btn.innerText = "Sedang Menyimpan...";
+      btn.className = "px-6 py-3 bg-gray-400 text-white font-bold rounded-lg shadow cursor-not-allowed";
+
+      // Eksekusi Pengiriman
+      fetch(WEB_APP_URL, {
+        method: 'POST',
+        mode: 'cors',
+        body: JSON.stringify({
+          supervisor: supervisor,
+          data: matrix
+        })
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.result === "success") {
+          alert("Mantap Fer! Data berhasil disimpan ke bagian '" + supervisor + "'.");
+          inputs.forEach(input => input.value = ""); // Bersihkan form
+        } else {
+          alert("Gagal menyimpan data, error: " + result.message);
+        }
+      })
+      .catch(error => {
+        console.error("Detail Error:", error);
+        alert("Terjadi masalah jaringan atau konfigurasi CORS.");
+      })
+      .finally(() => {
+        // Kembalikan tombol ke kondisi aktif
+        btn.disabled = false;
+        btn.innerText = "Simpan ke Spreadsheet";
+        btn.className = "px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow transition duration-200 flex items-center gap-2";
+      });
+    }
+  </script>
+</body>
+</html>
