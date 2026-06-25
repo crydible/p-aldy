@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Input Database Supervisor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen py-10 px-4">
+
+  <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+    <!-- Header -->
+    <div class="p-6 bg-gradient-to-r top-0 bg-blue-600 text-white text-center">
+      <h1 class="text-2xl font-bold tracking-wide">Input Database</h1>
+      <p class="text-sm opacity-80 mt-1">Simpan data langsung ke Google Sheets (Baris 6-12)</p>
+    </div>
+
+    <!-- Pilihan Supervisor -->
+    <div class="p-6 border-b border-gray-200 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <label for="supervisor" class="font-semibold text-gray-700 text-lg">Pilih Supervisor:</label>
+      <select id="supervisor" class="w-full sm:w-64 p-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-800">
+        <option value="syafii">Syafii (Kolom A - E)</option>
+        <option value="anwar">Anwar (Kolom F - J)</option>
+        <option value="mahfudz">Mahfudz (Kolom K - O)</option>
+      </select>
+    </div>
+
+    <!-- Tabel Input Spreadsheet-like -->
+    <div class="p-6 overflow-x-auto">
+      <table class="w-full border-collapse border border-gray-300 bg-white shadow-inner rounded-lg overflow-hidden">
+        <thead>
+          <tr class="bg-gray-200 text-gray-700 text-sm font-semibold uppercase">
+            <th class="p-3 border border-gray-300 w-12 text-center">No</th>
+            <th class="p-3 border border-gray-300 text-center">Kolom 1</th>
+            <th class="p-3 border border-gray-300 text-center">Kolom 2</th>
+            <th class="p-3 border border-gray-300 text-center">Kolom 3</th>
+            <th class="p-3 border border-gray-300 text-center">Kolom 4</th>
+            <th class="p-3 border border-gray-300 text-center">Kolom 5</th>
+          </tr>
+        </thead>
+        <tbody id="input-grid">
+          <!-- Diisi otomatis oleh JavaScript (7 Baris) -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tombol Simpan -->
+    <div class="p-6 bg-gray-50 border-t border-gray-200 flex justify-end">
+      <button onclick="kirimData()" id="btn-simpan" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow transition duration-200 flex items-center gap-2">
+        <span>Simpan ke Spreadsheet</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // ⚠️ PASTE URL WEB APP GOOGLE APPS SCRIPT KAMU DI SINI
+    const WEB_APP_URL = "URL_WEB_APP_GOOGLE_APPS_SCRIPT_KAMU";
+
+    // Generate 7 Baris x 5 Kolom Input secara otomatis saat halaman dibuka
+    const tbody = document.getElementById('input-grid');
+    for (let r = 0; r < 7; r++) {
+      let tr = document.createElement('tr');
+      tr.className = "hover:bg-blue-50/50 transition-colors";
+      
+      // Kolom Nomor Baris (Row Label)
+      let tdNum = document.createElement('td');
+      tdNum.className = "p-3 border border-gray-300 bg-gray-50 font-bold text-gray-500 text-center text-sm";
+      tdNum.innerText = r + 6; // Menampilkan label baris sesuai spreadsheet asli (6 s.d 12)
+      tr.appendChild(tdNum);
+
+      // 5 Kolom Input Data
+      for (let c = 0; c < 5; c++) {
+        let td = document.createElement('td');
+        td.className = "border border-gray-300 p-0";
+        
+        let input = document.createElement('input');
+        input.type = "text";
+        input.className = "w-full p-3 text-sm text-gray-800 bg-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 font-normal transition-all cell-input";
+        input.dataset.row = r;
+        input.dataset.col = c;
+        input.placeholder = "...";
+        
+        td.appendChild(input);
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+
+    // Fungsi mengambil seluruh value tabel dan menembakkannya ke API Apps Script
+    function kirimData() {
+      const supervisor = document.getElementById('supervisor').value;
+      const btn = document.getElementById('btn-simpan');
+      
+      // Siapkan matriks kosong 7x5
+      let matrix = Array.from({ length: 7 }, () => Array(5).fill(""));
+      
+      // Ambil semua element input dan masukkan ke dalam matriks data sesuai koordinatnya
+      const inputs = document.querySelectorAll('.cell-input');
+      inputs.forEach(input => {
+        let r = input.dataset.row;
+        let c = input.dataset.col;
+        matrix[r][c] = input.value.trim(); // Simpan string kosong jika tidak diisi
+      });
+
+      // Validasi URL
+      if (WEB_APP_URL === "https://script.google.com/macros/s/AKfycbzpPUgPtmpO_2yswjLxibPCGPJ6UulXcHQPqRZrEi79hOK0kOPMKAqCY58a0I7esRCt/exec") {
+        alert("Fer, isi dulu konstanta WEB_APP_URL di bagian bawah kode HTML kamu!");
+        return;
+      }
+
+      // Ubah state tombol biar user tahu proses sedang berjalan
+      btn.disabled = true;
+      btn.innerText = "Sedang Menyimpan...";
+      btn.className = "px-6 py-3 bg-gray-400 text-white font-bold rounded-lg shadow cursor-not-allowed";
+
+      // Kirim Data JSON
+      fetch(WEB_APP_URL, {
+        method: 'POST',
+        mode: 'cors',
+        body: JSON.stringify({
+          supervisor: supervisor,
+          data: matrix
+        })
+      })
+      .then(response => response.json())
+      .then(result => {
+        if (result.result === "success") {
+          alert("Mantap Fer! Data berhasil masuk ke Sheet '" + supervisor + "'.");
+          // Opsional: kosongkan tabel setelah berhasil
+          inputs.forEach(input => input.value = ""); 
+        } else {
+          alert("Waduh gagal, error: " + result.message);
+        }
+      })
+      .catch(error => {
+        console.error("Error detail:", error);
+        alert("Terjadi kendala koneksi saat mengirim data.");
+      })
+      .finally(() => {
+        // Kembalikan state tombol semula
+        btn.disabled = false;
+        btn.innerText = "Simpan ke Spreadsheet";
+        btn.className = "px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow transition duration-200 flex items-center gap-2";
+      });
+    }
+  </script>
+</body>
+</html>
